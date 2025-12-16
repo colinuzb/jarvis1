@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis Mde By IbrohimDev</title>
+    <style>
+        :root {
+            --glass-bg: rgba(20, 20, 20, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent: #00d2ff;
+            --text: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* UI Overlay */
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            transition: opacity 0.3s;
+        }
+
+        .header {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Controls */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            opacity: 0.8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Shape Grid */
+        .shape-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .shape-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid transparent;
+            color: #fff;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .shape-btn:hover { background: rgba(255,255,255,0.2); }
+        .shape-btn.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+        }
+
+        /* Toggles */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4444;
+            display: inline-block;
+            margin-right: 6px;
+            box-shadow: 0 0 8px #ff4444;
+        }
+        .status-dot.active {
+            background: #00ff88;
+            box-shadow: 0 0 8px #00ff88;
+        }
+
+        /* Hidden Video for CV */
+        #video-feed {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 160px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            opacity: 0; /* Hidden by default, useful for debug */
+            pointer-events: none;
+            transform: scaleX(-1); /* Mirror */
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 300;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .btn-action {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .btn-action:hover { background: rgba(255,255,255,0.2); }
+
+    </style>
+</head>
+<body>
+
+    <div id="loading">Jarvis Ishga Tushirilmoqda...</div>
+
+    <video id="video-feed" playsinline></video>
+
+    <div id="ui-container">
+        <div class="header">
+            <span>IbrohimDev v1.0</span>
+            <div id="cam-status"><span class="status-dot" id="cam-dot"></span><span id="cam-text">Kamera O'chiq!</span></div>
+        </div>
+
+        <div class="control-group">
+            <label>O'zgartirish Paneli</label>
+            <div class="shape-grid">
+                <button class="shape-btn active" onclick="setShape('sphere')">Soha</button>
+                <button class="shape-btn" onclick="setShape('heart')">Yurak</button>
+                <button class="shape-btn" onclick="setShape('flower')">Gull</button>
+                <button class="shape-btn" onclick="setShape('saturn')">Saturn</button>
+                <button class="shape-btn" onclick="setShape('buddha')">Budda</button>
+                <button class="shape-btn" onclick="setShape('fireworks')">Olov</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Rang <span id="val-hue">180</span></label>
+            <input type="range" min="0" max="360" value="180" id="in-hue">
+        </div>
+
+        <div class="control-group">
+            <label>Nur O'lchami <span id="val-size">2.0</span></label>
+            <input type="range" min="0.5" max="10" step="0.1" value="2.0" id="in-size">
+        </div>
+
+        <div class="control-group">
+            <label>Shakl O'zgarishi <span id="val-noise">0.5</span></label>
+            <input type="range" min="0" max="2" step="0.1" value="0.5" id="in-noise">
+        </div>
+
+        <div class="toggle-row">
+            <span>Ishora Paneli</span>
+            <input type="checkbox" id="chk-gesture" checked>
+        </div>
+
+        <button class="btn-action" onclick="takeScreenshot()">Rasm Olish</button>
+
+        <div style="font-size: 10px; opacity: 0.6; line-height: 1.4;">
+            <strong>Gestures:</strong><br>
+            • Qo'lingizni Oching: Expand/Explode<br>
+            • Fists/Close: Contract<br>
+            • Distance between hands: Scale<br>
+            • Fallback: Move mouse horizontally to expand.
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- Configuration & State ---
+        const CONFIG = {
+            particleCount: 15000,
+            baseColor: new THREE.Color(0x00d2ff),
+            hue: 0.5,
+            targetShape: 'sphere',
+            transitionSpeed: 0.05,
+            gestureEnabled: true,
+            mouseFallback: { x: 0, y: 0 },
+            isMobile: /Android|iPhone|iPad/i.test(navigator.userAgent)
+        };
+
+        // Reduce count for mobile
+        if(CONFIG.isMobile) CONFIG.particleCount = 6000;
+
+        // Physics State
+        const STATE = {
+            expansion: 0.0, // 0 = contracted, 1 = expanded
+            scale: 1.0,
+            noiseStrength: 0.5,
+            time: 0
+        };
+
+        // --- Three.js Setup ---
+        const scene = new THREE.Scene();
+        // Fog for depth
+        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 25;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // --- Particle System ---
+
+        // Helper: Random float between min and max
+        const rand = (min, max) => Math.random() * (max - min) + min;
+
+        // 1. Geometry Attributes
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(CONFIG.particleCount * 3);
+        const targetPositions = new Float32Array(CONFIG.particleCount * 3);
+        const sizes = new Float32Array(CONFIG.particleCount);
+        const colors = new Float32Array(CONFIG.particleCount * 3);
+
+        // Initialize points randomly
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            const i3 = i * 3;
+            positions[i3] = rand(-10, 10);
+            positions[i3 + 1] = rand(-10, 10);
+            positions[i3 + 2] = rand(-10, 10);
+
+            targetPositions[i3] = positions[i3]; // Start at same
+
+            sizes[i] = Math.random();
+
+            colors[i3] = 1.0;
+            colors[i3 + 1] = 1.0;
+            colors[i3 + 2] = 1.0;
+        }
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('targetPos', new THREE.BufferAttribute(targetPositions, 3));
+        geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+        geometry.setAttribute('customColor', new THREE.BufferAttribute(colors, 3));
+
+        // 2. Shader Material (GLSL)
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: CONFIG.baseColor },
+                uSize: { value: 2.0 },
+                uExpansion: { value: 0.0 },
+                uNoiseStrength: { value: 0.5 },
+                uScale: { value: 1.0 }
+            },
+            vertexShader: `
+                uniform float uTime;
+                uniform float uSize;
+                uniform float uExpansion;
+                uniform float uScale;
+                uniform float uNoiseStrength;
+
+                attribute float size;
+                attribute vec3 targetPos;
+                attribute vec3 customColor;
+
+                varying vec3 vColor;
+                varying float vAlpha;
+
+                // Simplex noise function (simplified)
+                vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+                vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+                vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+                float snoise(vec3 v) {
+                    const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
+                    const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
+                    vec3 i  = floor(v + dot(v, C.yyy) );
+                    vec3 x0 = v - i + dot(i, C.xxx) ;
+                    vec3 g = step(x0.yzx, x0.xyz);
+                    vec3 l = 1.0 - g;
+                    vec3 i1 = min( g.xyz, l.zxy );
+                    vec3 i2 = max( g.xyz, l.zxy );
+                    vec3 x1 = x0 - i1 + C.xxx;
+                    vec3 x2 = x0 - i2 + C.yyy;
+                    vec3 x3 = x0 - D.yyy;
+                    i = mod289(i);
+                    vec4 p = permute( permute( permute(
+                                i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
+                            + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
+                            + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
+                    float n_ = 0.142857142857;
+                    vec3  ns = n_ * D.wyz - D.xzx;
+                    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+                    vec4 x_ = floor(j * ns.z);
+                    vec4 y_ = floor(j - 7.0 * x_ );
+                    vec4 x = x_ *ns.x + ns.yyyy;
+                    vec4 y = y_ *ns.x + ns.yyyy;
+                    vec4 h = 1.0 - abs(x) - abs(y);
+                    vec4 b0 = vec4( x.xy, y.xy );
+                    vec4 b1 = vec4( x.zw, y.zw );
+                    vec4 s0 = floor(b0)*2.0 + 1.0;
+                    vec4 s1 = floor(b1)*2.0 + 1.0;
+                    vec4 sh = -step(h, vec4(0.0));
+                    vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
+                    vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
+                    vec3 p0 = vec3(a0.xy,h.x);
+                    vec3 p1 = vec3(a0.zw,h.y);
+                    vec3 p2 = vec3(a1.xy,h.z);
+                    vec3 p3 = vec3(a1.zw,h.w);
+                    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+                    p0 *= norm.x;
+                    p1 *= norm.y;
+                    p2 *= norm.z;
+                    p3 *= norm.w;
+                    vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+                    m = m * m;
+                    return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
+                }
+
+                void main() {
+                    vColor = customColor;
+
+                    // 1. Lerp between current pos and target logic handled in JS for heavy physics,
+                    // but here we handle noise and global transforms
+
+                    vec3 pos = position; // The position attribute is already updated via lerp in JS
+
+                    // Add Noise based on time and expansion
+                    float noiseVal = snoise(pos * 0.1 + uTime * 0.5) * uNoiseStrength;
+
+                    // Expansion explosion effect
+                    vec3 dir = normalize(pos);
+                    pos += dir * (uExpansion * 10.0 * noiseVal);
+
+                    // Apply Scale
+                    pos *= uScale;
+
+                    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+                    gl_Position = projectionMatrix * mvPosition;
+
+                    // Size attenuation
+                    gl_PointSize = uSize * size * (300.0 / -mvPosition.z);
+
+                    // Fade distant particles
+                    vAlpha = 1.0 - smoothstep(40.0, 100.0, length(mvPosition.xyz));
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                varying vec3 vColor;
+                varying float vAlpha;
+
+                void main() {
+                    // Circular particle
+                    vec2 uv = gl_PointCoord.xy - 0.5;
+                    float r = length(uv);
+                    if (r > 0.5) discard;
+
+                    // Soft glow
+                    float strength = 1.0 - (r * 2.0);
+                    strength = pow(strength, 1.5);
+
+                    gl_FragColor = vec4(uColor * vColor, strength * vAlpha);
+                }
+            `,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true
+        });
+
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+
+        // --- Shape Generators ---
+
+        function getShapePosition(type, i) {
+            const ratio = i / CONFIG.particleCount;
+            const x = 0, y = 0, z = 0;
+
+            if (type === 'sphere') {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = 2 * Math.PI * u;
+                const phi = Math.acos(2 * v - 1);
+                const r = 10;
+                return {
+                    x: r * Math.sin(phi) * Math.cos(theta),
+                    y: r * Math.sin(phi) * Math.sin(theta),
+                    z: r * Math.cos(phi)
+                };
+            }
+            else if (type === 'heart') {
+                // 3D Heart parametric
+                // x = 16sin^3(t)
+                // y = 13cos(t) - 5cos(2t) - 2cos(3t) - cos(4t)
+                // Rotate around Y to make it 3D
+                const t = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI * 2; // rotation
+
+                // Base 2D heart shape
+                let hx = 16 * Math.pow(Math.sin(t), 3);
+                let hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+
+                // Add thickness
+                const r = Math.random() * 2;
+                const z = r * Math.sin(phi) * Math.sin(t); // simplistic volume
+
+                return { x: hx * 0.5, y: hy * 0.5, z: z * 2 };
+            }
+            else if (type === 'flower') {
+                const r = Math.sqrt(Math.random()) * 10;
+                const theta = Math.random() * Math.PI * 2;
+                // Rose curve/Petals
+                const k = 4; // 4 petals
+                const envelope = Math.abs(Math.cos(k * theta)) * 8 + 2;
+
+                const z = (Math.random() - 0.5) * 2; // Thin layer
+                return {
+                    x: Math.cos(theta) * envelope,
+                    y: Math.sin(theta) * envelope,
+                    z: z + Math.sin(r)*2 // Cup shape
+                };
+            }
+            else if (type === 'saturn') {
+                // Mix of sphere and ring
+                if (Math.random() > 0.4) {
+                    // Planet
+                    const u = Math.random();
+                    const v = Math.random();
+                    const theta = 2 * Math.PI * u;
+                    const phi = Math.acos(2 * v - 1);
+                    const r = 5;
+                    return {
+                        x: r * Math.sin(phi) * Math.cos(theta),
+                        y: r * Math.sin(phi) * Math.sin(theta),
+                        z: r * Math.cos(phi)
+                    };
+                } else {
+                    // Ring
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 7 + Math.random() * 6;
+                    return {
+                        x: Math.cos(angle) * dist,
+                        y: (Math.random() - 0.5) * 0.5, // Thin Y
+                        z: Math.sin(angle) * dist
+                    };
+                }
+            }
+            else if (type === 'buddha') {
+                 // Abstract meditator composition
+                 // 0-0.3: Legs (Triangle base)
+                 // 0.3-0.7: Torso (Cylinder/Sphere)
+                 // 0.7-1.0: Head
+                 const r = Math.random();
+
+                 if(r < 0.4) {
+                     // Base/Legs: flattened sphere
+                    const u = Math.random() * Math.PI * 2;
+                    const v = Math.random() * Math.PI;
+                    const rad = 7;
+                    return {
+                        x: rad * Math.cos(u) * Math.sin(v) * 0.8,
+                        y: rad * Math.cos(v) * 0.5 - 4,
+                        z: rad * Math.sin(u) * Math.sin(v) * 0.6
+                    };
+                 } else if (r < 0.8) {
+                     // Body
+                    const u = Math.random() * Math.PI * 2;
+                    const v = Math.random() * Math.PI;
+                    const rad = 4;
+                    return {
+                        x: rad * Math.cos(u) * Math.sin(v) * 0.9,
+                        y: rad * Math.cos(v) + 1,
+                        z: rad * Math.sin(u) * Math.sin(v) * 0.7
+                    };
+                 } else {
+                     // Head
+                    const u = Math.random() * Math.PI * 2;
+                    const v = Math.random() * Math.PI;
+                    const rad = 2.5;
+                    return {
+                        x: rad * Math.cos(u) * Math.sin(v),
+                        y: rad * Math.cos(v) + 6,
+                        z: rad * Math.sin(u) * Math.sin(v)
+                    };
+                 }
+            }
+            else if (type === 'fireworks') {
+                // Pack everything into center for explosion
+                return {
+                    x: (Math.random()-0.5),
+                    y: (Math.random()-0.5),
+                    z: (Math.random()-0.5)
+                };
+            }
+            return {x:0, y:0, z:0};
+        }
+
+        function updateShape() {
+            const attr = geometry.attributes.targetPos;
+            const arr = attr.array;
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const pos = getShapePosition(CONFIG.targetShape, i);
+                arr[i*3] = pos.x;
+                arr[i*3+1] = pos.y;
+                arr[i*3+2] = pos.z;
+            }
+            attr.needsUpdate = true;
+        }
+
+
+        // --- Animation Loop ---
+
+        function animate() {
+            requestAnimationFrame(animate);
+            STATE.time += 0.01;
+
+            // 1. Process Inputs (Lerp state towards targets)
+            material.uniforms.uTime.value = STATE.time;
+
+            // Logic: Mix gesture input and mouse input
+            let targetExp = CONFIG.mouseFallback.x; // 0 to 1
+
+            // If gestures active, override
+            if (CONFIG.gestureEnabled && visionState.active) {
+                // Smoothly interpolate current expansion to vision expansion
+                STATE.expansion += (visionState.expansion - STATE.expansion) * 0.1;
+                STATE.scale += (visionState.scale - STATE.scale) * 0.1;
+            } else {
+                // Mouse fallback smoothing
+                STATE.expansion += (targetExp - STATE.expansion) * 0.1;
+                // Auto breathe if idle
+                if(!CONFIG.gestureEnabled && targetExp < 0.1) {
+                    STATE.expansion = Math.sin(STATE.time) * 0.2 + 0.2;
+                }
+            }
+
+            // Update Uniforms
+            material.uniforms.uExpansion.value = STATE.expansion;
+            material.uniforms.uScale.value = STATE.scale;
+            material.uniforms.uNoiseStrength.value = STATE.noiseStrength;
+            material.uniforms.uColor.value.setHSL(CONFIG.hue, 1.0, 0.6);
+
+            // 2. Physics: Move Current Pos -> Target Pos
+            // We do this on CPU to allow for complex morphing trails
+            const posAttr = geometry.attributes.position;
+            const targetAttr = geometry.attributes.targetPos;
+
+            const current = posAttr.array;
+            const target = targetAttr.array;
+
+            // Speed depends on expansion (excited state = faster)
+            const speed = CONFIG.transitionSpeed + (STATE.expansion * 0.05);
+
+            // Fireworks Mode Logic: If fireworks, we don't lerp to target, we explode out
+            if (CONFIG.targetShape === 'fireworks' && STATE.expansion > 0.8) {
+                // Explosion logic handled in Shader via expansion uniform primarily
+                // But we add some drift here
+            } else {
+                // Normal Morphing
+                for (let i = 0; i < CONFIG.particleCount; i++) {
+                    const i3 = i * 3;
+
+                    // Simple Lerp
+                    current[i3] += (target[i3] - current[i3]) * speed;
+                    current[i3+1] += (target[i3+1] - current[i3+1]) * speed;
+                    current[i3+2] += (target[i3+2] - current[i3+2]) * speed;
+
+                    // Add subtle rotation
+                    const x = current[i3];
+                    const z = current[i3+2];
+                    const angle = 0.001 * (1.0 + STATE.expansion);
+                    current[i3] = x * Math.cos(angle) - z * Math.sin(angle);
+                    current[i3+2] = x * Math.sin(angle) + z * Math.cos(angle);
+                }
+            }
+
+            posAttr.needsUpdate = true;
+
+            // Render
+            particles.rotation.y += 0.002;
+            renderer.render(scene, camera);
+        }
+
+        // --- Hand Vision Logic (MediaPipe) ---
+
+        const videoElement = document.getElementById('video-feed');
+        const visionState = {
+            active: false,
+            expansion: 0,
+            scale: 1,
+            lastGestureTime: 0
+        };
+
+        function onResults(results) {
+            document.getElementById('loading').style.opacity = '0';
+
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                visionState.active = true;
+                updateCamStatus(true);
+
+                // Get primary hand (first one detected)
+                const landmarks = results.multiHandLandmarks[0];
+
+                // 1. Calculate Openness (Wrist to Middle Finger Tip)
+                const wrist = landmarks[0];
+                const tip = landmarks[12]; // Middle finger tip
+
+                // Distance calculation
+                const d = Math.sqrt(
+                    Math.pow(tip.x - wrist.x, 2) +
+                    Math.pow(tip.y - wrist.y, 2)
+                );
+
+                // Thresholds usually: Closed Fist ~0.2, Open Hand ~0.6 (normalized coords)
+                // Normalize 0.2->0.5 range to 0.0->1.0
+                let openVal = (d - 0.2) * 3.5;
+                openVal = Math.max(0, Math.min(1, openVal)); // Clamp
+
+                visionState.expansion = openVal;
+
+                // 2. Calculate Scale (If two hands present)
+                if (results.multiHandLandmarks.length > 1) {
+                    const hand1 = results.multiHandLandmarks[0][0]; // Wrist
+                    const hand2 = results.multiHandLandmarks[1][0]; // Wrist
+                    const distHands = Math.sqrt(
+                        Math.pow(hand1.x - hand2.x, 2) +
+                        Math.pow(hand1.y - hand2.y, 2)
+                    );
+                    // Map 0.2 -> 0.8 to Scale 0.5 -> 2.0
+                    visionState.scale = 0.5 + (distHands * 2.0);
+                }
+
+                // 3. Trigger Fireworks on rapid expansion ("Snap")
+                if (visionState.expansion > 0.8 && (Date.now() - visionState.lastGestureTime > 2000)) {
+                    // Logic to auto-switch to fireworks could go here,
+                    // but keeping it user-selected is usually less confusing.
+                }
+
+            } else {
+                visionState.active = false;
+                updateCamStatus(false);
+            }
+        }
+
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+
+        hands.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        hands.onResults(onResults);
+
+        // Camera setup
+        const camUtils = new Camera(videoElement, {
+            onFrame: async () => {
+                if(CONFIG.gestureEnabled) await hands.send({image: videoElement});
+            },
+            width: 320, // Low res for performance
+            height: 240
+        });
+
+        // Start camera
+        camUtils.start().catch(e => {
+            console.log("Kamera Rad Qilindi Yoki Buzildi.", e);
+            document.getElementById('cam-text').innerText = "Kamera Rad Etildi";
+        });
+
+        // --- UI & Interaction Code ---
+
+        // Expose functions to window for HTML onclick events
+        window.setShape = (shape) => {
+            CONFIG.targetShape = shape;
+            updateShape();
+
+            // UI Update
+            document.querySelectorAll('.shape-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        };
+
+        window.takeScreenshot = () => {
+            renderer.render(scene, camera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'ibrohimdev.png';
+            link.href = dataURL;
+            link.click();
+        };
+
+        // Inputs
+        document.getElementById('in-hue').addEventListener('input', (e) => {
+            CONFIG.hue = e.target.value / 360;
+            document.getElementById('val-hue').innerText = e.target.value;
+        });
+
+        document.getElementById('in-size').addEventListener('input', (e) => {
+            material.uniforms.uSize.value = parseFloat(e.target.value);
+            document.getElementById('val-size').innerText = e.target.value;
+        });
+
+        document.getElementById('in-noise').addEventListener('input', (e) => {
+            STATE.noiseStrength = parseFloat(e.target.value);
+            document.getElementById('val-noise').innerText = e.target.value;
+        });
+
+        document.getElementById('chk-gesture').addEventListener('change', (e) => {
+            CONFIG.gestureEnabled = e.target.checked;
+        });
+
+        // Mouse Fallback
+        window.addEventListener('mousemove', (e) => {
+            if(!CONFIG.gestureEnabled || !visionState.active) {
+                // Map X axis to expansion
+                CONFIG.mouseFallback.x = e.clientX / window.innerWidth;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function updateCamStatus(active) {
+            const dot = document.getElementById('cam-dot');
+            const txt = document.getElementById('cam-text');
+            if(active) {
+                dot.classList.add('active');
+                txt.innerText = "Qo'lni Tekshirish";
+            } else {
+                dot.classList.remove('active');
+                txt.innerText = "Qidirilmoqda...";
+            }
+        }
+
+        // Init
+        updateShape(); // Set initial shape
+        animate();
+
+    </script>
+</body>
+</html>
